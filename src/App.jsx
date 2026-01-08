@@ -118,6 +118,7 @@ function App() {
       />
 
       {/* Formats */}
+      <div className="text-neutral-500 mb-2">Format</div>
       <div className="flex flex-wrap gap-2 mb-4">
         {formatList.map((f) => (
           <button
@@ -131,6 +132,7 @@ function App() {
       </div>
 
       {/* Styles */}
+      <div className="text-neutral-500 mb-2">Style</div>
       <div className="flex flex-wrap gap-2 mb-8">
         {styleList.map((s) => (
           <button
