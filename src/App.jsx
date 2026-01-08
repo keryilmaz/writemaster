@@ -330,8 +330,10 @@ function App() {
         );
         
         return (
-          <div key={formatId} className={`mb-3 ${hasMultiple ? 'flex gap-4 overflow-x-auto scrollbar-hide' : ''}`} style={hasMultiple ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}}>
-            {items.map(renderCard)}
+          <div key={formatId} className="mb-3 flex justify-center">
+            <div className={`${hasMultiple ? 'flex gap-4 overflow-x-auto scrollbar-hide' : ''}`} style={hasMultiple ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}}>
+              {items.map(renderCard)}
+            </div>
           </div>
         );
       })}
