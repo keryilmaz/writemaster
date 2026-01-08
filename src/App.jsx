@@ -82,7 +82,11 @@ function App() {
     <div className="min-h-screen p-8 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-12 text-neutral-500">
-        <span>writemaster</span>
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="3.5" cy="3.5" r="3.5" fill="#FDFDFD"/>
+          <circle cx="11.5" cy="3.5" r="3.5" fill="#FDFDFD"/>
+          <circle cx="3.5" cy="11.5" r="3.5" fill="#FDFDFD"/>
+        </svg>
         <div className="flex items-center gap-2 h-6">
           {keyOpen ? (
             <input
