@@ -148,13 +148,34 @@ function App() {
       </div>
 
       {/* Generate */}
-      <button
-        onClick={generate}
-        disabled={isGenerating || !apiKey || !idea.trim()}
-        className="w-full py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30 mb-8"
-      >
-        {isGenerating ? 'Generating...' : 'Generate'}
-      </button>
+      <div className="flex gap-2 mb-8">
+        <button
+          onClick={generate}
+          disabled={isGenerating || !apiKey || !idea.trim()}
+          className="flex-1 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30"
+        >
+          {isGenerating ? 'Generating...' : 'Generate'}
+        </button>
+        <button
+          onClick={() => {
+            const fakeContent = {
+              tweet: "The best time to start was yesterday. The second best time is now.\n\nStop waiting for permission. Stop waiting for perfect conditions.\n\nYour future self will thank you for starting today.",
+              thread: "Here's what I learned after 10 years of building products:\n\n---\n\n1/ Ship fast, iterate faster.\n\nYour first version will be wrong. That's okay. The goal isn't perfection—it's learning.\n\n---\n\n2/ Talk to users obsessively.\n\nEvery week. Every day if you can. The answers are in their words, not your assumptions.\n\n---\n\n3/ Simple beats clever.\n\nIf you need to explain it, it's too complicated. The best products feel obvious in hindsight.",
+              substack: "# The Art of Simplicity\n\nWe overcomplicate everything.\n\nOur products. Our processes. Our lives.\n\nBut the best solutions are almost always simple. Not easy—simple.\n\n## Why We Overcomplicate\n\nComplexity feels like progress. Adding features feels productive. But every addition is also a subtraction—of clarity, of focus, of ease.\n\n## The Path Forward\n\nStart by removing. What can you eliminate? What's not essential?\n\nThe goal isn't to do more. It's to do what matters.",
+              shortEssay: "Simplicity is the ultimate sophistication.\n\nWe think complexity signals intelligence. It doesn't. It signals confusion.\n\nThe smartest people I know speak plainly. They cut through noise. They find the essence.\n\nThis isn't about dumbing down. It's about clearing up.\n\nWant to test your understanding? Explain it to a child. If you can't, you don't understand it well enough.",
+              longEssay: "# On the Nature of Work\n\nWork has changed. Not just how we work, but what work means.\n\nA century ago, work was physical. You made things. You moved things. You fixed things. The value was tangible.\n\nToday, most work is invisible. We move information. We make decisions. We coordinate with others. The value is abstract.\n\n## The Knowledge Economy\n\nThis shift has profound implications. When work was physical, more hours meant more output. Simple math.\n\nBut knowledge work doesn't scale linearly. Sometimes an hour of deep focus produces more than a week of scattered effort.\n\n## The Future\n\nThe next evolution is already here. AI will handle the routine. What's left for us?\n\nCreativity. Judgment. Connection. The deeply human things.\n\nThe question isn't whether to adapt. It's how fast."
+            };
+            const newOutputs = {};
+            formats.forEach(f => {
+              if (fakeContent[f]) newOutputs[f] = fakeContent[f];
+            });
+            setOutputs(newOutputs);
+          }}
+          className="px-4 py-3 bg-neutral-800 text-neutral-500 rounded-lg hover:bg-neutral-700 hover:text-white"
+        >
+          Test
+        </button>
+      </div>
 
       {/* Error */}
       {error && <p className="text-neutral-500 mb-4">error: {error}</p>}
