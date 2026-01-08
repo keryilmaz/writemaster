@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        mono: ['ui-monospace', 'SF Mono', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
     },
   },
