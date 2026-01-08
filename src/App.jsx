@@ -20,6 +20,9 @@ function App() {
   const [refineInput, setRefineInput] = useState('');
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState({});
+  const [activeIndex, setActiveIndex] = useState({}); // { formatId: index }
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
   useEffect(() => { localStorage.setItem('writer-formats', JSON.stringify(formats)); }, [formats]);
   useEffect(() => { localStorage.setItem('writer-style', style); }, [style]);
@@ -62,10 +65,12 @@ function App() {
             tone,
             pinned: false
           };
-          setOutputs(prev => ({
-            ...prev,
-            [format]: [...(prev[format] || []), newItem]
-          }));
+          setOutputs(prev => {
+            const updated = [...(prev[format] || []), newItem];
+            // Set active index to the new item
+            setActiveIndex(ai => ({ ...ai, [format]: updated.length - 1 }));
+            return { ...prev, [format]: updated };
+          });
         } catch (err) {
           setError(err.message);
         }
@@ -131,12 +136,65 @@ function App() {
       }
       return { ...prev, [formatId]: filtered };
     });
+    // Adjust active index if needed
+    setActiveIndex(prev => {
+      const currentIndex = prev[formatId] || 0;
+      const items = outputs[formatId] || [];
+      if (currentIndex >= items.length - 1 && currentIndex > 0) {
+        return { ...prev, [formatId]: currentIndex - 1 };
+      }
+      return prev;
+    });
+  };
+
+  // Carousel navigation
+  const goToSlide = (formatId, index) => {
+    setActiveIndex(prev => ({ ...prev, [formatId]: index }));
+  };
+
+  const goToPrev = (formatId, itemsLength) => {
+    setActiveIndex(prev => {
+      const current = prev[formatId] || 0;
+      return { ...prev, [formatId]: current === 0 ? itemsLength - 1 : current - 1 };
+    });
+  };
+
+  const goToNext = (formatId, itemsLength) => {
+    setActiveIndex(prev => {
+      const current = prev[formatId] || 0;
+      return { ...prev, [formatId]: current === itemsLength - 1 ? 0 : current + 1 };
+    });
+  };
+
+  // Touch handlers for swipe
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = (formatId, itemsLength) => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      goToNext(formatId, itemsLength);
+    } else if (isRightSwipe) {
+      goToPrev(formatId, itemsLength);
+    }
   };
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen">
       {/* Controls - always centered */}
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto px-8 pt-8">
         {/* Header */}
       <div className="flex justify-between items-center mb-12 text-neutral-500">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -251,6 +309,7 @@ function App() {
               if (pinned.length > 0) next[formatId] = pinned;
             }
             // Then add new items for selected formats
+            const newActiveIndex = {};
             formats.forEach(f => {
               if (fakeContent[f]) {
                 const newItem = {
@@ -261,8 +320,10 @@ function App() {
                   pinned: false
                 };
                 next[f] = [...(next[f] || []), newItem];
+                newActiveIndex[f] = next[f].length - 1;
               }
             });
+            setActiveIndex(ai => ({ ...ai, ...newActiveIndex }));
             return next;
           });
           setExpanded(formats.reduce((acc, f) => ({ ...acc, [f]: true }), {}));
@@ -272,67 +333,93 @@ function App() {
         Test
       </button>
 
-      {/* Outputs - full width for horizontal comparison */}
+      {/* Outputs - Carousel */}
       {Object.entries(outputs).map(([formatId, items]) => {
         const hasMultiple = items.length > 1;
+        const currentIndex = activeIndex[formatId] || 0;
+        const currentItem = items[currentIndex];
         
-        const renderCard = (item) => (
-          <div key={item.id} className={`rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0 ${hasMultiple ? 'min-w-[400px] max-w-[500px]' : 'max-w-2xl mx-auto'}`}>
-            <div 
-              className="flex justify-between items-center px-4 py-2 bg-neutral-900 text-neutral-400 cursor-pointer"
-              onClick={() => setExpanded(prev => ({ ...prev, [formatId]: !prev[formatId] }))}
-            >
-              <div className="flex items-center gap-2">
-                <span className={`transition-transform ${expanded[formatId] ? 'rotate-90' : ''}`}>›</span>
-                <span>{formatList.find(f => f.id === formatId)?.name}</span>
-                <span className="text-neutral-600">·</span>
-                <span className="text-neutral-500">{styleList.find(s => s.id === item.style)?.name}</span>
-                {item.tone && (
-                  <>
-                    <span className="text-neutral-600">·</span>
-                    <span className="text-neutral-500">{toneList.find(t => t.id === item.tone)?.name}</span>
-                  </>
-                )}
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button onClick={(e) => { e.stopPropagation(); copy(item.content); }} className="hover:text-white" title="Copy">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M8 8V7.2C8 6.0799 8 5.51984 8.21799 5.09202C8.40973 4.71569 8.71569 4.40973 9.09202 4.21799C9.51984 4 10.0799 4 11.2 4H16.8C17.9201 4 18.4802 4 18.908 4.21799C19.2843 4.40973 19.5903 4.71569 19.782 5.09202C20 5.51984 20 6.0799 20 7.2V12.8C20 13.9201 20 14.4802 19.782 14.908C19.5903 15.2843 19.2843 15.5903 18.908 15.782C18.4802 16 17.9201 16 16.8 16H16M16 11.2V16.8C16 17.9201 16 18.4802 15.782 18.908C15.5903 19.2843 15.2843 19.5903 14.908 19.782C14.4802 20 13.9201 20 12.8 20H7.2C6.0799 20 5.51984 20 5.09202 19.782C4.71569 19.5903 4.40973 19.2843 4.21799 18.908C4 18.4802 4 17.9201 4 16.8V11.2C4 10.0799 4 9.51984 4.21799 9.09202C4.40973 8.71569 4.71569 8.40973 5.09202 8.21799C5.51984 8 6.0799 8 7.2 8H12.8C13.9201 8 14.4802 8 14.908 8.21799C15.2843 8.40973 15.5903 8.71569 15.782 9.09202C16 9.51984 16 10.0799 16 11.2Z"/>
-                  </svg>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); togglePin(formatId, item.id); }} className={item.pinned ? 'text-white' : 'hover:text-white'} title={item.pinned ? 'Unpin' : 'Pin'}>
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill={item.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 20L8 16M4.4622 12.4622L11.5378 19.5378C12.6293 20.6293 14.4933 20.1253 14.8862 18.6326L16.2697 13.3752C16.4161 12.8189 16.7949 12.3525 17.3094 12.0953L20.0181 10.741C21.2391 10.1305 21.5032 8.50317 20.5379 7.53789L16.4621 3.46212C15.4968 2.49683 13.8695 2.76091 13.259 3.9819L11.9047 6.69058C11.6475 7.20509 11.1811 7.58391 10.6248 7.7303L5.36743 9.11384C3.87467 9.50667 3.37072 11.3707 4.4622 12.4622Z"/>
-                  </svg>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); deleteItem(formatId, item.id); }} className="hover:text-red-400" title="Delete">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 6.5L5.87156 19.1376C5.94388 20.1863 6.81565 21 7.86682 21H16.1332C17.1843 21 18.0561 20.1863 18.1284 19.1376L19 6.5"/>
-                    <path d="M3.5 6H20.5"/>
-                    <path d="M8.07092 5.74621C8.42348 3.89745 10.0485 2.5 12 2.5C13.9515 2.5 15.5765 3.89745 15.9291 5.74621"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            {expanded[formatId] && (
-              <div className="p-4 whitespace-pre-wrap">
-                {formatId === 'thread' && item.content.includes('---')
-                  ? item.content.split('---').filter(t => t.trim()).map((tweet, i) => (
-                      <div key={i} className={i > 0 ? 'mt-4 pt-4 border-t border-neutral-800' : ''}>
-                        {tweet.trim()}
-                      </div>
-                    ))
-                  : item.content
-                }
-              </div>
-            )}
-          </div>
-        );
+        if (!currentItem) return null;
         
         return (
-          <div key={formatId} className="mb-3 flex justify-center">
-            <div className={`${hasMultiple ? 'flex gap-4 overflow-x-auto scrollbar-hide' : ''}`} style={hasMultiple ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}}>
-              {items.map(renderCard)}
+          <div key={formatId} className="mb-3">
+            <div className="max-w-2xl mx-auto px-8">
+              {/* Card */}
+              <div 
+                className="rounded-lg overflow-hidden bg-neutral-900"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={() => onTouchEnd(formatId, items.length)}
+              >
+                <div 
+                  className="flex justify-between items-center px-4 py-2 bg-neutral-900 text-neutral-400 cursor-pointer"
+                  onClick={() => setExpanded(prev => ({ ...prev, [formatId]: !prev[formatId] }))}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`transition-transform ${expanded[formatId] ? 'rotate-90' : ''}`}>›</span>
+                    <span>{formatList.find(f => f.id === formatId)?.name}</span>
+                    <span className="text-neutral-600">·</span>
+                    <span className="text-neutral-500">{styleList.find(s => s.id === currentItem.style)?.name}</span>
+                    {currentItem.tone && (
+                      <>
+                        <span className="text-neutral-600">·</span>
+                        <span className="text-neutral-500">{toneList.find(t => t.id === currentItem.tone)?.name}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); copy(currentItem.content); }} className="hover:text-white" title="Copy">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M8 8V7.2C8 6.0799 8 5.51984 8.21799 5.09202C8.40973 4.71569 8.71569 4.40973 9.09202 4.21799C9.51984 4 10.0799 4 11.2 4H16.8C17.9201 4 18.4802 4 18.908 4.21799C19.2843 4.40973 19.5903 4.71569 19.782 5.09202C20 5.51984 20 6.0799 20 7.2V12.8C20 13.9201 20 14.4802 19.782 14.908C19.5903 15.2843 19.2843 15.5903 18.908 15.782C18.4802 16 17.9201 16 16.8 16H16M16 11.2V16.8C16 17.9201 16 18.4802 15.782 18.908C15.5903 19.2843 15.2843 19.5903 14.908 19.782C14.4802 20 13.9201 20 12.8 20H7.2C6.0799 20 5.51984 20 5.09202 19.782C4.71569 19.5903 4.40973 19.2843 4.21799 18.908C4 18.4802 4 17.9201 4 16.8V11.2C4 10.0799 4 9.51984 4.21799 9.09202C4.40973 8.71569 4.71569 8.40973 5.09202 8.21799C5.51984 8 6.0799 8 7.2 8H12.8C13.9201 8 14.4802 8 14.908 8.21799C15.2843 8.40973 15.5903 8.71569 15.782 9.09202C16 9.51984 16 10.0799 16 11.2Z"/>
+                      </svg>
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); togglePin(formatId, currentItem.id); }} className={currentItem.pinned ? 'text-white' : 'hover:text-white'} title={currentItem.pinned ? 'Unpin' : 'Pin'}>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill={currentItem.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 20L8 16M4.4622 12.4622L11.5378 19.5378C12.6293 20.6293 14.4933 20.1253 14.8862 18.6326L16.2697 13.3752C16.4161 12.8189 16.7949 12.3525 17.3094 12.0953L20.0181 10.741C21.2391 10.1305 21.5032 8.50317 20.5379 7.53789L16.4621 3.46212C15.4968 2.49683 13.8695 2.76091 13.259 3.9819L11.9047 6.69058C11.6475 7.20509 11.1811 7.58391 10.6248 7.7303L5.36743 9.11384C3.87467 9.50667 3.37072 11.3707 4.4622 12.4622Z"/>
+                      </svg>
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); deleteItem(formatId, currentItem.id); }} className="hover:text-red-400" title="Delete">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 6.5L5.87156 19.1376C5.94388 20.1863 6.81565 21 7.86682 21H16.1332C17.1843 21 18.0561 20.1863 18.1284 19.1376L19 6.5"/>
+                        <path d="M3.5 6H20.5"/>
+                        <path d="M8.07092 5.74621C8.42348 3.89745 10.0485 2.5 12 2.5C13.9515 2.5 15.5765 3.89745 15.9291 5.74621"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                {expanded[formatId] && (
+                  <div className="p-4 whitespace-pre-wrap">
+                    {formatId === 'thread' && currentItem.content.includes('---')
+                      ? currentItem.content.split('---').filter(t => t.trim()).map((tweet, i) => (
+                          <div key={i} className={i > 0 ? 'mt-4 pt-4 border-t border-neutral-800' : ''}>
+                            {tweet.trim()}
+                          </div>
+                        ))
+                      : currentItem.content
+                    }
+                  </div>
+                )}
+                
+                {/* Dots - only show if multiple items */}
+                {hasMultiple && (
+                  <div className="flex justify-center gap-2 px-4 py-3 border-t border-neutral-800">
+                    {items.map((item, index) => (
+                      <button
+                        key={item.id}
+                        onClick={(e) => { e.stopPropagation(); goToSlide(formatId, index); }}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          index === currentIndex 
+                            ? 'bg-white' 
+                            : item.pinned 
+                              ? 'bg-neutral-500' 
+                              : 'bg-neutral-700 hover:bg-neutral-500'
+                        }`}
+                        title={`${styleList.find(s => s.id === item.style)?.name}${item.tone ? ' · ' + toneList.find(t => t.id === item.tone)?.name : ''}${item.pinned ? ' (pinned)' : ''}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -340,7 +427,7 @@ function App() {
 
       {/* Refine - centered */}
       {Object.keys(outputs).length > 0 && !isGenerating && (
-        <div className="max-w-2xl mx-auto mt-8 relative">
+        <div className="max-w-2xl mx-auto mt-8 px-8 pb-8 relative">
           <input
             type="text"
             value={refineInput}
