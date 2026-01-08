@@ -197,7 +197,7 @@ function App() {
               : content
             }
           </div>
-          <div className="px-4 py-2 bg-neutral-950 text-neutral-600">
+          <div className="px-4 py-2 bg-neutral-800 text-neutral-400">
             {content.length} chars · {content.split(/\s+/).filter(w => w).length} words
           </div>
         </div>
