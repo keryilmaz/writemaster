@@ -123,7 +123,7 @@ function App() {
           <button
             key={f.id}
             onClick={() => toggleFormat(f.id)}
-            className={`px-3 py-1 rounded ${formats.includes(f.id) ? 'bg-neutral-800 text-white' : 'bg-neutral-950 text-neutral-600 hover:text-neutral-400'}`}
+            className={`px-3 py-1 rounded ${formats.includes(f.id) ? 'bg-white text-neutral-900' : 'bg-neutral-950 text-neutral-600 hover:text-neutral-400'}`}
           >
             {f.name}
           </button>
@@ -136,7 +136,7 @@ function App() {
           <button
             key={s.id}
             onClick={() => setStyle(s.id)}
-            className={`px-3 py-1 rounded ${style === s.id ? 'bg-neutral-800 text-white' : 'bg-neutral-950 text-neutral-600 hover:text-neutral-400'}`}
+            className={`px-3 py-1 rounded ${style === s.id ? 'bg-white text-neutral-900' : 'bg-neutral-950 text-neutral-600 hover:text-neutral-400'}`}
           >
             {s.name}
           </button>
