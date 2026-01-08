@@ -123,7 +123,7 @@ function App() {
           <button
             key={f.id}
             onClick={() => toggleFormat(f.id)}
-            className={`px-3 py-1 border rounded ${formats.includes(f.id) ? 'border-white text-white' : 'border-neutral-800 text-neutral-600 hover:text-neutral-400'}`}
+            className={`px-3 py-1 rounded ${formats.includes(f.id) ? 'bg-neutral-800 text-white' : 'bg-neutral-950 text-neutral-600 hover:text-neutral-400'}`}
           >
             {f.name}
           </button>
@@ -136,7 +136,7 @@ function App() {
           <button
             key={s.id}
             onClick={() => setStyle(s.id)}
-            className={`px-3 py-1 border rounded ${style === s.id ? 'border-white text-white' : 'border-neutral-800 text-neutral-600 hover:text-neutral-400'}`}
+            className={`px-3 py-1 rounded ${style === s.id ? 'bg-neutral-800 text-white' : 'bg-neutral-950 text-neutral-600 hover:text-neutral-400'}`}
           >
             {s.name}
           </button>
@@ -147,7 +147,7 @@ function App() {
       <button
         onClick={generate}
         disabled={isGenerating || !apiKey || !idea.trim()}
-        className="w-full py-3 border border-white text-white rounded hover:bg-white hover:text-black disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white mb-8"
+        className="w-full py-3 bg-neutral-950 text-white rounded hover:bg-neutral-800 disabled:opacity-30 mb-8"
       >
         {isGenerating ? 'generating...' : 'generate'}
       </button>
@@ -192,7 +192,7 @@ function App() {
           <button
             onClick={refine}
             disabled={isRefining || !refineInput.trim()}
-            className="px-4 py-2 border border-neutral-900 bg-neutral-950 rounded text-neutral-500 hover:text-white hover:border-white disabled:opacity-30"
+            className="px-4 py-2 bg-neutral-950 rounded text-neutral-500 hover:text-white hover:bg-neutral-800 disabled:opacity-30"
           >
             {isRefining ? '...' : '→'}
           </button>
