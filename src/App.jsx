@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { generateContent, refineContent } from './services/claude';
 import { formatList } from './config/formats';
 import { styleList } from './config/styles';
+import { toneList } from './config/tones';
 
 function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('writemaster-key') || '');
@@ -12,6 +13,7 @@ function App() {
     return saved ? JSON.parse(saved) : ['tweet'];
   });
   const [style, setStyle] = useState(() => localStorage.getItem('writer-style') || 'naval');
+  const [tone, setTone] = useState(() => localStorage.getItem('writer-tone') || '');
   const [outputs, setOutputs] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -21,6 +23,7 @@ function App() {
 
   useEffect(() => { localStorage.setItem('writer-formats', JSON.stringify(formats)); }, [formats]);
   useEffect(() => { localStorage.setItem('writer-style', style); }, [style]);
+  useEffect(() => { localStorage.setItem('writer-tone', tone); }, [tone]);
   useEffect(() => { localStorage.setItem('writemaster-key', apiKey); }, [apiKey]);
 
   const toggleFormat = (id) => {
@@ -41,7 +44,7 @@ function App() {
     await Promise.all(
       formats.map(async (format) => {
         try {
-          const result = await generateContent(apiKey, idea.trim(), format, style);
+          const result = await generateContent(apiKey, idea.trim(), format, style, tone);
           setOutputs(prev => ({ ...prev, [format]: result }));
         } catch (err) {
           setError(err.message);
@@ -57,7 +60,7 @@ function App() {
     const newOutputs = {};
     for (const [format, content] of Object.entries(outputs)) {
       try {
-        newOutputs[format] = await refineContent(apiKey, content, refineInput.trim(), format, style);
+        newOutputs[format] = await refineContent(apiKey, content, refineInput.trim(), format, style, tone);
       } catch (err) {
         setError(err.message);
       }
@@ -137,7 +140,7 @@ function App() {
       </div>
 
       {/* Styles */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-4">
         {styleList.map((s) => (
           <button
             key={s.id}
@@ -149,49 +152,64 @@ function App() {
         ))}
       </div>
 
+      {/* Tones */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {toneList.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTone(tone === t.id ? '' : t.id)}
+            className={`px-3 py-1 rounded-lg ${tone === t.id ? 'bg-white text-neutral-900' : 'bg-neutral-950 text-neutral-600 hover:text-neutral-400'}`}
+          >
+            {t.name}
+          </button>
+        ))}
+      </div>
+
       {/* Generate */}
-      <div className="flex gap-2 mb-8">
+      <div className="mb-8">
         <button
           onClick={generate}
           disabled={isGenerating || !apiKey || !idea.trim()}
-          className="flex-1 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30"
+          className="w-full py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30"
         >
           {isGenerating ? 'Generating...' : 'Generate'}
         </button>
-        <button
-          onClick={() => {
-            const fakeContent = {
-              tweet: "The best time to start was yesterday. The second best time is now.\n\nStop waiting for permission. Stop waiting for perfect conditions.\n\nYour future self will thank you for starting today.",
-              thread: "Here's what I learned after 10 years of building products:\n\n---\n\n1/ Ship fast, iterate faster.\n\nYour first version will be wrong. That's okay. The goal isn't perfection—it's learning.\n\n---\n\n2/ Talk to users obsessively.\n\nEvery week. Every day if you can. The answers are in their words, not your assumptions.\n\n---\n\n3/ Simple beats clever.\n\nIf you need to explain it, it's too complicated. The best products feel obvious in hindsight.",
-              substack: "# The Art of Simplicity\n\nWe overcomplicate everything.\n\nOur products. Our processes. Our lives.\n\nBut the best solutions are almost always simple. Not easy—simple.\n\n## Why We Overcomplicate\n\nComplexity feels like progress. Adding features feels productive. But every addition is also a subtraction—of clarity, of focus, of ease.\n\n## The Path Forward\n\nStart by removing. What can you eliminate? What's not essential?\n\nThe goal isn't to do more. It's to do what matters.",
-              shortEssay: "Simplicity is the ultimate sophistication.\n\nWe think complexity signals intelligence. It doesn't. It signals confusion.\n\nThe smartest people I know speak plainly. They cut through noise. They find the essence.\n\nThis isn't about dumbing down. It's about clearing up.\n\nWant to test your understanding? Explain it to a child. If you can't, you don't understand it well enough.",
-              longEssay: "# On the Nature of Work\n\nWork has changed. Not just how we work, but what work means.\n\nA century ago, work was physical. You made things. You moved things. You fixed things. The value was tangible.\n\nToday, most work is invisible. We move information. We make decisions. We coordinate with others. The value is abstract.\n\n## The Knowledge Economy\n\nThis shift has profound implications. When work was physical, more hours meant more output. Simple math.\n\nBut knowledge work doesn't scale linearly. Sometimes an hour of deep focus produces more than a week of scattered effort.\n\n## The Future\n\nThe next evolution is already here. AI will handle the routine. What's left for us?\n\nCreativity. Judgment. Connection. The deeply human things.\n\nThe question isn't whether to adapt. It's how fast."
-            };
-            const newOutputs = {};
-            const newExpanded = {};
-            formats.forEach(f => {
-              if (fakeContent[f]) {
-                newOutputs[f] = fakeContent[f];
-                newExpanded[f] = true;
-              }
-            });
-            setOutputs(newOutputs);
-            setExpanded(newExpanded);
-          }}
-          className="px-4 py-3 bg-neutral-800 text-neutral-500 rounded-lg hover:bg-neutral-700 hover:text-white"
-        >
-          Test
-        </button>
       </div>
+
+      {/* Hidden Test Button */}
+      <button
+        onClick={() => {
+          const fakeContent = {
+            tweet: "The best time to start was yesterday. The second best time is now.\n\nStop waiting for permission. Stop waiting for perfect conditions.\n\nYour future self will thank you for starting today.",
+            thread: "Here's what I learned after 10 years of building products:\n\n---\n\n1/ Ship fast, iterate faster.\n\nYour first version will be wrong. That's okay. The goal isn't perfection—it's learning.\n\n---\n\n2/ Talk to users obsessively.\n\nEvery week. Every day if you can. The answers are in their words, not your assumptions.\n\n---\n\n3/ Simple beats clever.\n\nIf you need to explain it, it's too complicated. The best products feel obvious in hindsight.",
+            substack: "# The Art of Simplicity\n\nWe overcomplicate everything.\n\nOur products. Our processes. Our lives.\n\nBut the best solutions are almost always simple. Not easy—simple.\n\n## Why We Overcomplicate\n\nComplexity feels like progress. Adding features feels productive. But every addition is also a subtraction—of clarity, of focus, of ease.\n\n## The Path Forward\n\nStart by removing. What can you eliminate? What's not essential?\n\nThe goal isn't to do more. It's to do what matters.",
+            shortEssay: "Simplicity is the ultimate sophistication.\n\nWe think complexity signals intelligence. It doesn't. It signals confusion.\n\nThe smartest people I know speak plainly. They cut through noise. They find the essence.\n\nThis isn't about dumbing down. It's about clearing up.\n\nWant to test your understanding? Explain it to a child. If you can't, you don't understand it well enough.",
+            longEssay: "# On the Nature of Work\n\nWork has changed. Not just how we work, but what work means.\n\nA century ago, work was physical. You made things. You moved things. You fixed things. The value was tangible.\n\nToday, most work is invisible. We move information. We make decisions. We coordinate with others. The value is abstract.\n\n## The Knowledge Economy\n\nThis shift has profound implications. When work was physical, more hours meant more output. Simple math.\n\nBut knowledge work doesn't scale linearly. Sometimes an hour of deep focus produces more than a week of scattered effort.\n\n## The Future\n\nThe next evolution is already here. AI will handle the routine. What's left for us?\n\nCreativity. Judgment. Connection. The deeply human things.\n\nThe question isn't whether to adapt. It's how fast."
+          };
+          const newOutputs = {};
+          const newExpanded = {};
+          formats.forEach(f => {
+            if (fakeContent[f]) {
+              newOutputs[f] = fakeContent[f];
+              newExpanded[f] = true;
+            }
+          });
+          setOutputs(newOutputs);
+          setExpanded(newExpanded);
+        }}
+        className="fixed bottom-4 right-4 px-4 py-2 bg-neutral-800 text-neutral-500 rounded-lg opacity-0 hover:opacity-100 hover:bg-neutral-700 hover:text-white transition-opacity"
+      >
+        Test
+      </button>
 
       {/* Error */}
       {error && <p className="text-neutral-500 mb-4">error: {error}</p>}
 
       {/* Outputs */}
       {Object.entries(outputs).map(([formatId, content]) => (
-        <div key={formatId} className="mb-8 rounded-lg overflow-hidden">
+        <div key={formatId} className="mb-3 rounded-lg overflow-hidden">
           <div 
-            className="flex justify-between items-center px-4 py-2 bg-neutral-800 text-neutral-400 cursor-pointer"
+            className="flex justify-between items-center px-4 py-2 bg-neutral-900 text-neutral-400 cursor-pointer"
             onClick={() => setExpanded(prev => ({ ...prev, [formatId]: !prev[formatId] }))}
           >
             <div className="flex items-center gap-2">
@@ -212,7 +230,7 @@ function App() {
                   : content
                 }
               </div>
-              <div className="px-4 py-2 bg-neutral-800 text-neutral-400">
+              <div className="px-4 py-2 bg-[#1c1c1c] text-neutral-400">
                 {content.length} chars · {content.split(/\s+/).filter(w => w).length} words
               </div>
             </>
@@ -222,19 +240,19 @@ function App() {
 
       {/* Refine */}
       {Object.keys(outputs).length > 0 && !isGenerating && (
-        <div className="flex gap-2">
+        <div className="mt-8 relative">
           <input
             type="text"
             value={refineInput}
             onChange={(e) => setRefineInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && refine()}
-            placeholder="refine"
-            className="flex-1 bg-neutral-950 border border-neutral-900 rounded-lg px-4 py-2 text-white placeholder:text-neutral-600"
+            placeholder="Type improvement..."
+            className="w-full bg-neutral-950 border border-neutral-900 rounded-lg px-4 py-2 pr-12 text-white placeholder:text-neutral-600"
           />
           <button
             onClick={refine}
             disabled={isRefining || !refineInput.trim()}
-            className="px-4 py-2 bg-neutral-950 rounded-lg text-neutral-500 hover:text-white hover:bg-neutral-800 disabled:opacity-30"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white disabled:opacity-30"
           >
             {isRefining ? '...' : '→'}
           </button>

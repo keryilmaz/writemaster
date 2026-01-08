@@ -1,18 +1,28 @@
 import { getStyle } from '../config/styles';
 import { getFormat } from '../config/formats';
+import { getTone } from '../config/tones';
 import { systemPromptBase } from '../config/writingPrinciples';
 
-function buildGenerationPrompt(idea, formatId, styleId) {
+function buildGenerationPrompt(idea, formatId, styleId, toneId) {
   const style = getStyle(styleId);
   const format = getFormat(formatId);
+  const tone = getTone(toneId);
   
   const examplesText = style.examples
     .map((ex, i) => `Example ${i + 1} (${ex.type}):\n${ex.content}`)
     .join('\n\n');
 
+  const toneSection = tone ? `
+<tone_optimization>
+TONE: ${tone.name}
+
+${tone.instructions}
+</tone_optimization>
+` : '';
+
   return `
 <task>
-Transform the following idea into ${format.name} format, written in the style of ${style.name}.
+Transform the following idea into ${format.name} format, written in the style of ${style.name}${tone ? `, optimized for ${tone.name}` : ''}.
 </task>
 
 <idea>
@@ -31,7 +41,7 @@ ${style.traits.map(t => `- ${t}`).join('\n')}
 EXAMPLES OF THIS STYLE:
 ${examplesText}
 </style_guide>
-
+${toneSection}
 <format_requirements>
 FORMAT: ${format.name}
 ${format.description}
@@ -42,7 +52,7 @@ ${format.instructions}
 
 <output_instructions>
 Generate the content now. 
-- Follow the style closely - adopt the voice, patterns, and approach shown in the examples
+- Follow the style closely - adopt the voice, patterns, and approach shown in the examples${tone ? `\n- Layer in the ${tone.name} tone qualities while maintaining the core ${style.name} voice` : ''}
 - Follow the format constraints precisely
 - Apply all the writing principles (valuable, actionable, readable, engaging)
 - Output ONLY the final content, no explanations or meta-commentary
@@ -51,14 +61,15 @@ ${formatId === 'thread' ? '- Separate each tweet with "---" on its own line' : '
 `;
 }
 
-function buildRefinementPrompt(currentContent, instruction, formatId, styleId) {
+function buildRefinementPrompt(currentContent, instruction, formatId, styleId, toneId) {
   const style = getStyle(styleId);
   const format = getFormat(formatId);
+  const tone = getTone(toneId);
 
   return `
 <task>
 Refine the following ${format.name} content based on the user's instruction.
-Maintain the ${style.name} writing style throughout.
+Maintain the ${style.name} writing style${tone ? ` and ${tone.name} tone` : ''} throughout.
 </task>
 
 <current_content>
@@ -71,7 +82,7 @@ ${instruction}
 
 <requirements>
 - Apply the requested changes while maintaining the overall quality
-- Keep the ${style.name} voice and style consistent
+- Keep the ${style.name} voice and style consistent${tone ? `\n- Maintain the ${tone.name} tone optimization` : ''}
 - Ensure the ${format.name} format constraints are still met
 - Output ONLY the refined content, no explanations
 ${formatId === 'thread' ? '- Keep tweets separated with "---" on their own lines' : ''}
@@ -140,7 +151,7 @@ function extractTextContent(response) {
   return textBlocks.map(block => block.text).join('\n');
 }
 
-export async function generateContent(apiKey, idea, formatId, styleId) {
+export async function generateContent(apiKey, idea, formatId, styleId, toneId = '') {
   const format = getFormat(formatId);
   
   let researchContext = '';
@@ -159,7 +170,7 @@ export async function generateContent(apiKey, idea, formatId, styleId) {
     }
   }
 
-  let prompt = buildGenerationPrompt(idea, formatId, styleId);
+  let prompt = buildGenerationPrompt(idea, formatId, styleId, toneId);
   
   if (researchContext) {
     prompt = `
@@ -184,8 +195,8 @@ ${prompt}
   return extractTextContent(response);
 }
 
-export async function refineContent(apiKey, currentContent, instruction, formatId, styleId) {
-  const prompt = buildRefinementPrompt(currentContent, instruction, formatId, styleId);
+export async function refineContent(apiKey, currentContent, instruction, formatId, styleId, toneId = '') {
+  const prompt = buildRefinementPrompt(currentContent, instruction, formatId, styleId, toneId);
 
   const response = await callClaude(
     apiKey,
