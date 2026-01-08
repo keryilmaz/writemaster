@@ -114,7 +114,7 @@ function App() {
         value={idea}
         onChange={(e) => setIdea(e.target.value)}
         placeholder="idea"
-        className="w-full bg-transparent border border-neutral-800 p-4 mb-8 min-h-[120px] resize-none text-white placeholder:text-neutral-600"
+        className="w-full bg-transparent border border-neutral-900 bg-neutral-950 p-4 mb-8 min-h-[120px] resize-none text-white placeholder:text-neutral-600"
       />
 
       {/* Formats */}
@@ -157,7 +157,7 @@ function App() {
 
       {/* Outputs */}
       {Object.entries(outputs).map(([formatId, content]) => (
-        <div key={formatId} className="mb-8 border border-neutral-800">
+        <div key={formatId} className="mb-8 border border-neutral-900 bg-neutral-950">
           <div className="flex justify-between items-center px-4 py-2 border-b border-neutral-800 text-neutral-500">
             <span>{formatList.find(f => f.id === formatId)?.name}</span>
             <button onClick={() => copy(content)} className="hover:text-white">copy</button>
@@ -187,12 +187,12 @@ function App() {
             onChange={(e) => setRefineInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && refine()}
             placeholder="refine"
-            className="flex-1 bg-transparent border border-neutral-800 px-4 py-2 text-white placeholder:text-neutral-600"
+            className="flex-1 bg-transparent border border-neutral-900 bg-neutral-950 px-4 py-2 text-white placeholder:text-neutral-600"
           />
           <button
             onClick={refine}
             disabled={isRefining || !refineInput.trim()}
-            className="px-4 py-2 border border-neutral-800 text-neutral-500 hover:text-white hover:border-white disabled:opacity-30"
+            className="px-4 py-2 border border-neutral-900 bg-neutral-950 text-neutral-500 hover:text-white hover:border-white disabled:opacity-30"
           >
             {isRefining ? '...' : '→'}
           </button>
