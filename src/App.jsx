@@ -114,7 +114,7 @@ function App() {
         value={idea}
         onChange={(e) => setIdea(e.target.value)}
         placeholder="Type your idea here..."
-        className="w-full bg-neutral-950 border border-neutral-900 rounded-lg p-4 mb-8 min-h-[120px] resize-none text-white placeholder:text-neutral-600"
+        className="w-full bg-neutral-900 rounded-lg p-4 mb-8 min-h-[120px] resize-none text-white placeholder:text-neutral-600"
       />
 
       {/* Formats */}
