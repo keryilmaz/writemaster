@@ -4,7 +4,7 @@ import { formatList } from './config/formats';
 import { styleList } from './config/styles';
 
 function App() {
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('writemaster-key') || '');
   const [keyOpen, setKeyOpen] = useState(false);
   const [idea, setIdea] = useState('');
   const [formats, setFormats] = useState(() => {
@@ -20,6 +20,7 @@ function App() {
 
   useEffect(() => { localStorage.setItem('writer-formats', JSON.stringify(formats)); }, [formats]);
   useEffect(() => { localStorage.setItem('writer-style', style); }, [style]);
+  useEffect(() => { localStorage.setItem('writemaster-key', apiKey); }, [apiKey]);
 
   const toggleFormat = (id) => {
     if (formats.includes(id)) {
