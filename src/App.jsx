@@ -17,6 +17,7 @@ function App() {
   const [isRefining, setIsRefining] = useState(false);
   const [refineInput, setRefineInput] = useState('');
   const [error, setError] = useState('');
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => { localStorage.setItem('writer-formats', JSON.stringify(formats)); }, [formats]);
   useEffect(() => { localStorage.setItem('writer-style', style); }, [style]);
@@ -35,6 +36,7 @@ function App() {
     setError('');
     setIsGenerating(true);
     setOutputs({});
+    setExpanded(formats.reduce((acc, f) => ({ ...acc, [f]: true }), {}));
 
     await Promise.all(
       formats.map(async (format) => {
@@ -166,10 +168,15 @@ function App() {
               longEssay: "# On the Nature of Work\n\nWork has changed. Not just how we work, but what work means.\n\nA century ago, work was physical. You made things. You moved things. You fixed things. The value was tangible.\n\nToday, most work is invisible. We move information. We make decisions. We coordinate with others. The value is abstract.\n\n## The Knowledge Economy\n\nThis shift has profound implications. When work was physical, more hours meant more output. Simple math.\n\nBut knowledge work doesn't scale linearly. Sometimes an hour of deep focus produces more than a week of scattered effort.\n\n## The Future\n\nThe next evolution is already here. AI will handle the routine. What's left for us?\n\nCreativity. Judgment. Connection. The deeply human things.\n\nThe question isn't whether to adapt. It's how fast."
             };
             const newOutputs = {};
+            const newExpanded = {};
             formats.forEach(f => {
-              if (fakeContent[f]) newOutputs[f] = fakeContent[f];
+              if (fakeContent[f]) {
+                newOutputs[f] = fakeContent[f];
+                newExpanded[f] = true;
+              }
             });
             setOutputs(newOutputs);
+            setExpanded(newExpanded);
           }}
           className="px-4 py-3 bg-neutral-800 text-neutral-500 rounded-lg hover:bg-neutral-700 hover:text-white"
         >
@@ -183,23 +190,33 @@ function App() {
       {/* Outputs */}
       {Object.entries(outputs).map(([formatId, content]) => (
         <div key={formatId} className="mb-8 rounded-lg overflow-hidden">
-          <div className="flex justify-between items-center px-4 py-2 bg-neutral-800 text-neutral-400">
-            <span>{formatList.find(f => f.id === formatId)?.name}</span>
-            <button onClick={() => copy(content)} className="hover:text-white">copy</button>
+          <div 
+            className="flex justify-between items-center px-4 py-2 bg-neutral-800 text-neutral-400 cursor-pointer"
+            onClick={() => setExpanded(prev => ({ ...prev, [formatId]: !prev[formatId] }))}
+          >
+            <div className="flex items-center gap-2">
+              <span className={`transition-transform ${expanded[formatId] ? 'rotate-90' : ''}`}>›</span>
+              <span>{formatList.find(f => f.id === formatId)?.name}</span>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); copy(content); }} className="hover:text-white">copy</button>
           </div>
-          <div className="p-4 bg-neutral-900 whitespace-pre-wrap">
-            {formatId === 'thread' && content.includes('---')
-              ? content.split('---').filter(t => t.trim()).map((tweet, i) => (
-                  <div key={i} className={i > 0 ? 'mt-6 pt-6 border-t border-neutral-800' : ''}>
-                    {tweet.trim()}
-                  </div>
-                ))
-              : content
-            }
-          </div>
-          <div className="px-4 py-2 bg-neutral-800 text-neutral-400">
-            {content.length} chars · {content.split(/\s+/).filter(w => w).length} words
-          </div>
+          {expanded[formatId] && (
+            <>
+              <div className="p-4 bg-neutral-900 whitespace-pre-wrap">
+                {formatId === 'thread' && content.includes('---')
+                  ? content.split('---').filter(t => t.trim()).map((tweet, i) => (
+                      <div key={i} className={i > 0 ? 'mt-6 pt-6 border-t border-neutral-800' : ''}>
+                        {tweet.trim()}
+                      </div>
+                    ))
+                  : content
+                }
+              </div>
+              <div className="px-4 py-2 bg-neutral-800 text-neutral-400">
+                {content.length} chars · {content.split(/\s+/).filter(w => w).length} words
+              </div>
+            </>
+          )}
         </div>
       ))}
 
