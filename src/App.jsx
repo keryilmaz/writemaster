@@ -147,9 +147,9 @@ function App() {
       <button
         onClick={generate}
         disabled={isGenerating || !apiKey || !idea.trim()}
-        className="w-full py-3 bg-neutral-950 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30 mb-8"
+        className="w-full py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30 mb-8"
       >
-        {isGenerating ? 'generating...' : 'generate'}
+        {isGenerating ? 'Generating...' : 'Generate'}
       </button>
 
       {/* Error */}
