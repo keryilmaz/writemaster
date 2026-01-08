@@ -1,20 +1,26 @@
-export const config = {
-  runtime: 'edge',
-};
+export default async function handler(req, res) {
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req) {
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { apiKey, messages, system, tools } = await req.json();
+    const { apiKey, messages, system, tools } = req.body;
 
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(400).json({ error: 'API key required' });
+    }
+
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: 'Messages required' });
     }
 
     const headers = {
@@ -23,44 +29,42 @@ export default async function handler(req) {
       'anthropic-version': '2023-06-01',
     };
 
-    if (tools) {
+    if (tools && tools.length > 0) {
       headers['anthropic-beta'] = 'web-search-2025-03-05';
     }
 
-    const body = {
+    const requestBody = {
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8192,
-      system,
       messages,
     };
 
-    if (tools) {
-      body.tools = tools;
+    if (system) {
+      requestBody.system = system;
+    }
+
+    if (tools && tools.length > 0) {
+      requestBody.tools = tools;
     }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers,
-      body: JSON.stringify(body),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message || 'API error' }), {
-        status: response.status,
-        headers: { 'Content-Type': 'application/json' },
+      return res.status(response.status).json({ 
+        error: data.error?.message || `Claude API error: ${response.status}` 
       });
     }
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(200).json(data);
+
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('API Error:', err);
+    return res.status(500).json({ error: `Server error: ${err.message}` });
   }
 }

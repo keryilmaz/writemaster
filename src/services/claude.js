@@ -104,13 +104,29 @@ Focus on information that makes the content more credible, specific, and valuabl
 }
 
 async function callClaude(apiKey, messages, system, tools = null) {
-  const response = await fetch('/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ apiKey, messages, system, tools }),
-  });
+  let response;
+  try {
+    response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, messages, system, tools }),
+    });
+  } catch (fetchErr) {
+    throw new Error(`Network error: ${fetchErr.message}`);
+  }
 
-  const data = await response.json();
+  const text = await response.text();
+  
+  if (!text) {
+    throw new Error(`Empty response (status: ${response.status})`);
+  }
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid JSON: ${text.substring(0, 100)}`);
+  }
 
   if (!response.ok) {
     throw new Error(data.error || `API error: ${response.status}`);
