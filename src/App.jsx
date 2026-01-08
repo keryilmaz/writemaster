@@ -20,6 +20,7 @@ function App() {
   const [refineInput, setRefineInput] = useState('');
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState({});
+  const [pinnedOutputs, setPinnedOutputs] = useState({});
 
   useEffect(() => { localStorage.setItem('writer-formats', JSON.stringify(formats)); }, [formats]);
   useEffect(() => { localStorage.setItem('writer-style', style); }, [style]);
@@ -83,9 +84,31 @@ function App() {
 
   const copy = (text) => navigator.clipboard.writeText(text);
 
+  const pin = (formatId, content) => {
+    const pinned = {
+      id: Date.now(),
+      content,
+      style,
+      tone,
+    };
+    setPinnedOutputs(prev => ({
+      ...prev,
+      [formatId]: [...(prev[formatId] || []), pinned]
+    }));
+  };
+
+  const unpin = (formatId, pinId) => {
+    setPinnedOutputs(prev => ({
+      ...prev,
+      [formatId]: (prev[formatId] || []).filter(p => p.id !== pinId)
+    }));
+  };
+
   return (
-    <div className="min-h-screen p-8 max-w-2xl mx-auto">
-      {/* Header */}
+    <div className="min-h-screen p-8">
+      {/* Controls - always centered */}
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
       <div className="flex justify-between items-center mb-12 text-neutral-500">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="3.5" cy="3.5" r="3.5" fill="#FDFDFD"/>
@@ -166,14 +189,18 @@ function App() {
       </div>
 
       {/* Generate */}
-      <div className="mb-8">
-        <button
-          onClick={generate}
-          disabled={isGenerating || !apiKey || !idea.trim()}
-          className="w-full py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30"
-        >
-          {isGenerating ? 'Generating...' : 'Generate'}
-        </button>
+        <div className="mb-8">
+          <button
+            onClick={generate}
+            disabled={isGenerating || !apiKey || !idea.trim()}
+            className="w-full py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 disabled:opacity-30"
+          >
+            {isGenerating ? 'Generating...' : 'Generate'}
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && <p className="text-neutral-500 mb-4">error: {error}</p>}
       </div>
 
       {/* Hidden Test Button */}
@@ -202,45 +229,83 @@ function App() {
         Test
       </button>
 
-      {/* Error */}
-      {error && <p className="text-neutral-500 mb-4">error: {error}</p>}
-
-      {/* Outputs */}
-      {Object.entries(outputs).map(([formatId, content]) => (
-        <div key={formatId} className="mb-3 rounded-lg overflow-hidden">
-          <div 
-            className="flex justify-between items-center px-4 py-2 bg-neutral-900 text-neutral-400 cursor-pointer"
-            onClick={() => setExpanded(prev => ({ ...prev, [formatId]: !prev[formatId] }))}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`transition-transform ${expanded[formatId] ? 'rotate-90' : ''}`}>›</span>
-              <span>{formatList.find(f => f.id === formatId)?.name}</span>
+      {/* Outputs - full width for horizontal comparison */}
+      {Object.entries(outputs).map(([formatId, content]) => {
+        const pinned = pinnedOutputs[formatId] || [];
+        const hasPinned = pinned.length > 0;
+        
+        const renderCard = (cardContent, cardStyle, cardTone, isPinned, pinId = null) => (
+          <div className={`rounded-lg overflow-hidden bg-neutral-900 flex-shrink-0 ${hasPinned ? 'min-w-[400px] max-w-[500px]' : 'max-w-2xl mx-auto'}`}>
+            <div 
+              className="flex justify-between items-center px-4 py-2 bg-neutral-900 text-neutral-400 cursor-pointer"
+              onClick={() => setExpanded(prev => ({ ...prev, [formatId]: !prev[formatId] }))}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`transition-transform ${expanded[formatId] ? 'rotate-90' : ''}`}>›</span>
+                <span>{formatList.find(f => f.id === formatId)?.name}</span>
+                <span className="text-neutral-600">·</span>
+                <span className="text-neutral-500">{styleList.find(s => s.id === cardStyle)?.name}</span>
+                {cardTone && (
+                  <>
+                    <span className="text-neutral-600">·</span>
+                    <span className="text-neutral-500">{toneList.find(t => t.id === cardTone)?.name}</span>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button onClick={(e) => { e.stopPropagation(); copy(cardContent); }} className="hover:text-white" title="Copy">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M8 8V7.2C8 6.0799 8 5.51984 8.21799 5.09202C8.40973 4.71569 8.71569 4.40973 9.09202 4.21799C9.51984 4 10.0799 4 11.2 4H16.8C17.9201 4 18.4802 4 18.908 4.21799C19.2843 4.40973 19.5903 4.71569 19.782 5.09202C20 5.51984 20 6.0799 20 7.2V12.8C20 13.9201 20 14.4802 19.782 14.908C19.5903 15.2843 19.2843 15.5903 18.908 15.782C18.4802 16 17.9201 16 16.8 16H16M16 11.2V16.8C16 17.9201 16 18.4802 15.782 18.908C15.5903 19.2843 15.2843 19.5903 14.908 19.782C14.4802 20 13.9201 20 12.8 20H7.2C6.0799 20 5.51984 20 5.09202 19.782C4.71569 19.5903 4.40973 19.2843 4.21799 18.908C4 18.4802 4 17.9201 4 16.8V11.2C4 10.0799 4 9.51984 4.21799 9.09202C4.40973 8.71569 4.71569 8.40973 5.09202 8.21799C5.51984 8 6.0799 8 7.2 8H12.8C13.9201 8 14.4802 8 14.908 8.21799C15.2843 8.40973 15.5903 8.71569 15.782 9.09202C16 9.51984 16 10.0799 16 11.2Z"/>
+                  </svg>
+                </button>
+                {isPinned ? (
+                  <button onClick={(e) => { e.stopPropagation(); unpin(formatId, pinId); }} className="text-white hover:text-neutral-400" title="Unpin">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 20L8 16M4.4622 12.4622L11.5378 19.5378C12.6293 20.6293 14.4933 20.1253 14.8862 18.6326L16.2697 13.3752C16.4161 12.8189 16.7949 12.3525 17.3094 12.0953L20.0181 10.741C21.2391 10.1305 21.5032 8.50317 20.5379 7.53789L16.4621 3.46212C15.4968 2.49683 13.8695 2.76091 13.259 3.9819L11.9047 6.69058C11.6475 7.20509 11.1811 7.58391 10.6248 7.7303L5.36743 9.11384C3.87467 9.50667 3.37072 11.3707 4.4622 12.4622Z"/>
+                    </svg>
+                  </button>
+                ) : (
+                  <button onClick={(e) => { e.stopPropagation(); pin(formatId, cardContent); }} className="hover:text-white" title="Pin">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 20L8 16M4.4622 12.4622L11.5378 19.5378C12.6293 20.6293 14.4933 20.1253 14.8862 18.6326L16.2697 13.3752C16.4161 12.8189 16.7949 12.3525 17.3094 12.0953L20.0181 10.741C21.2391 10.1305 21.5032 8.50317 20.5379 7.53789L16.4621 3.46212C15.4968 2.49683 13.8695 2.76091 13.259 3.9819L11.9047 6.69058C11.6475 7.20509 11.1811 7.58391 10.6248 7.7303L5.36743 9.11384C3.87467 9.50667 3.37072 11.3707 4.4622 12.4622Z"/>
+                    </svg>
+                  </button>
+                )}
+                <button onClick={(e) => { e.stopPropagation(); isPinned ? unpin(formatId, pinId) : setOutputs(prev => { const next = {...prev}; delete next[formatId]; return next; }); }} className="hover:text-red-400" title="Delete">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 6.5L5.87156 19.1376C5.94388 20.1863 6.81565 21 7.86682 21H16.1332C17.1843 21 18.0561 20.1863 18.1284 19.1376L19 6.5"/>
+                    <path d="M3.5 6H20.5"/>
+                    <path d="M8.07092 5.74621C8.42348 3.89745 10.0485 2.5 12 2.5C13.9515 2.5 15.5765 3.89745 15.9291 5.74621"/>
+                  </svg>
+                </button>
+              </div>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); copy(content); }} className="hover:text-white">copy</button>
-          </div>
-          {expanded[formatId] && (
-            <>
-              <div className="p-4 bg-neutral-900 whitespace-pre-wrap">
-                {formatId === 'thread' && content.includes('---')
-                  ? content.split('---').filter(t => t.trim()).map((tweet, i) => (
-                      <div key={i} className={i > 0 ? 'mt-6 pt-6 border-t border-neutral-800' : ''}>
+            {expanded[formatId] && (
+              <div className="p-4 whitespace-pre-wrap">
+                {formatId === 'thread' && cardContent.includes('---')
+                  ? cardContent.split('---').filter(t => t.trim()).map((tweet, i) => (
+                      <div key={i} className={i > 0 ? 'mt-4 pt-4 border-t border-neutral-800' : ''}>
                         {tweet.trim()}
                       </div>
                     ))
-                  : content
+                  : cardContent
                 }
               </div>
-              <div className="px-4 py-2 bg-[#1c1c1c] text-neutral-400">
-                {content.length} chars · {content.split(/\s+/).filter(w => w).length} words
-              </div>
-            </>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+        
+        return (
+          <div key={formatId} className={`mb-3 ${hasPinned ? 'flex gap-4 overflow-x-auto scrollbar-hide' : ''}`} style={hasPinned ? { scrollbarWidth: 'none', msOverflowStyle: 'none' } : {}}>
+            {pinned.map((p) => renderCard(p.content, p.style, p.tone, true, p.id))}
+            {renderCard(content, style, tone, false)}
+          </div>
+        );
+      })}
 
-      {/* Refine */}
+      {/* Refine - centered */}
       {Object.keys(outputs).length > 0 && !isGenerating && (
-        <div className="mt-8 relative">
+        <div className="max-w-2xl mx-auto mt-8 relative">
           <input
             type="text"
             value={refineInput}

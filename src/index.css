@@ -40,3 +40,7 @@ input, textarea, button {
 input:focus, textarea:focus {
   outline: none;
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
